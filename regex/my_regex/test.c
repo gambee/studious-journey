@@ -6,21 +6,30 @@
 	
 int main(int argc, char **argv)
 {
+	char *cur,str[257], input[201];
 	int i;
 	rng_ind rng;
-	
-	rnginit(&rng);
 
-	for(i=0;i<256;i++)
-	{
-		printf("%3d : %3d\n", i, rngbitcnt(&rng));
-		rngset(&rng, i);
-	}
 
-	for(i=0;i<256;i++)
+	while(1)
 	{
-		printf("%3d : %3d\n", i, rngbitcnt(&rng));
-		rngflip(&rng, i);
+		memset(input,0,257);
+		rnginit(&rng);
+		printf("enter an input curing:\n\t");
+		scanf("%s", input);
+
+		for(cur=input;*cur;cur++)
+			rngset(&rng,*cur);
+		
+		i = rngstr(str, &rng, 257);
+
+		if(i>0)
+			printf("%s\n", str);
+		else
+		{
+			printf("\n");
+			break;
+		}
 	}
 
 	return 0;

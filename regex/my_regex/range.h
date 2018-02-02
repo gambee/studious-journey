@@ -27,7 +27,7 @@ void rnginit(rng_ind*);
 int rngbit(rng_ind*, int);
 int rngset(rng_ind*, int);
 int rngflip(rng_ind*, int);
-char* rngstr(rng_ind*);
+int rngstr(char*,rng_ind*,int);
 
 int cbit(int i)
 {
@@ -127,13 +127,29 @@ int rngbitcnt(rng_ind* rng)
 	return cnt;
 }
 
-char* rngstr(rng_ind* rng)
+int rngstr(char* dest, rng_ind* rng, int size)
 {
-	if(!rng)
-		return NULL;
-	
+	int i, j, index;
 
-	return NULL;
+	if(!rng || !dest)
+		return -1;
+	if(size < rngbitcnt(rng) + 2)
+	{
+		*dest = 0;
+		return -2;
+	}
+	memset(dest, 0, size); 
+	
+	for(i=0,index=0;i<32;i++)
+		if(rng->member[i])
+			for(j=0;j<8;j++)
+				if(charbit(rng->member[i], j)>0)
+				{
+					dest[index] = i*8 + j;
+					++index;
+				}
+
+	return index;
 }
 
 
