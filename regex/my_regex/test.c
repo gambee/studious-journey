@@ -1,22 +1,19 @@
 #include <stdio.h>
-#include "express.h"
 
+#define RANGE_DEBUG
+#include "range.h"
+
+	
 int main(int argc, char **argv)
 {
-	struct a_range range;
-	char c;
-	int i;
+	int set, i;
+	unsigned char c = 0;
+	for(i=0;i<8;c=0,i++)
+	{
+		set = charset(&c,i);
+		printf("c: %08d\tset:%d\n", atob(c), set);
+	}
+	printf("c: %08d\tset:%d\n", atob(c), set);
 
-	range.low = 'a';
-	range.high = 'z';
-	range.neg = 1;
-
-	for(i = 0, c = ('a' - 4); i < 10; i++, c++)
-		printf("%c is in range a-z: %s\n", c, in_range(range, c) ? "False" : "True");
-	
-
-	printf("\nsizeof(a_range): %d\nsizeof(rng_elmnt): %d\n", 
-		sizeof(struct a_range), sizeof(struct rng_elmnt));
-	
 	return 0;
 }

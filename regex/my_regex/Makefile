@@ -1,2 +1,2 @@
-test: test.c express.h
+test: test.c range.h
 	gcc test.c -o test
