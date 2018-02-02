@@ -6,14 +6,22 @@
 	
 int main(int argc, char **argv)
 {
-	int set, i;
-	unsigned char c = 0;
-	for(i=0;i<8;c=0,i++)
+	int i;
+	rng_ind rng;
+	
+	rnginit(&rng);
+
+	for(i=0;i<256;i++)
 	{
-		set = charset(&c,i);
-		printf("c: %08d\tset:%d\n", atob(c), set);
+		printf("%3d : %3d\n", i, rngbitcnt(&rng));
+		rngset(&rng, i);
 	}
-	printf("c: %08d\tset:%d\n", atob(c), set);
+
+	for(i=0;i<256;i++)
+	{
+		printf("%3d : %3d\n", i, rngbitcnt(&rng));
+		rngflip(&rng, i);
+	}
 
 	return 0;
 }

@@ -14,30 +14,65 @@
 typedef struct {char member[32];} rng_ind;
 
 int atob(char);
+int tob(int*, void*, int);
+int cbit(int);
+int cbitcnt(unsigned char);
 
 int charbit(unsigned char, int);
-int charset(char*, int);
-int charflip(char*, int);
+int charset(unsigned char*, int);
+int charflip(unsigned char*, int);
 
+int rngbitcnt(rng_ind*);
+void rnginit(rng_ind*);
 int rngbit(rng_ind*, int);
 int rngset(rng_ind*, int);
 int rngflip(rng_ind*, int);
 char* rngstr(rng_ind*);
-void rnginit(rng_ind*);
 
+int cbit(int i)
+{
+	if((i>=0)&&(i<8))
+		return (1<<i);
+	else
+	{
+		printf("cbit_err");
+		return -1;
+	}
+}
 
+int tob(int* dest, void* data, int size)
+{
+	int i;
+	char* tmp;
+
+	if(!dest || !data || size<=0)
+		return -1;
+	
+	for(tmp = (char*) data, i=1; i<=size; i++)
+		dest[size-i] = atob(tmp[i-1]);
+
+	return 0;
+}
 
 int atob(char c)
 {
 	int ret = 0, i,ten=1;
 	for(i=0;i<8;i++,ten*=10)
-		ret += ((!!(((c>>i)&0x01)))*(ten));
+		ret += ((!!((cbit(i)&c)))*(ten));
 	return ret;
 }
 
-void rnginit(rng_ind* rng){memset(rng->member,0,32);}
+int cbitcnt(unsigned char c)
+{
+	int i,j;
+	for(i=0, j=0; i<8; i++)
+		j+=!!(c&cbit(i));
+	return j;
+}
 
 int charbit(unsigned char byte, int i) {return (i<9) ? ((byte>>i)&1) : -1;}
+
+void rnginit(rng_ind* rng){memset(rng->member,0,32);}
 	 
 int rngbit(rng_ind* rng, int i)
 {
@@ -48,40 +83,56 @@ int rngbit(rng_ind* rng, int i)
 
 int rngset(rng_ind* rng, int i)
 {
-	int ret = -1;
-	if(rng)
-	{
-		ret = rngbit(rng, i);
-	}
-
-	
-	return ret;
+	if(rng&&(i<256))
+		return charset(rng->member + i/8, i%8);
+	else
+		return -1;
 }
 
-int charset(char* c, int i)
+int charset(unsigned char* c, int i)
 {
-	int ret;
 	if(c && (i<8))
-	{
-		ret = charbit(*c, i);
-		*c = *c | (1<<i);
-	}
-	else ret = -1;
-	return ret;
+		return (*c = *c | cbit(i));
+	else 
+		return -1;
 }
 
-int charflip(char* c, int i)
+int charflip(unsigned char* c, int i)
 {
-	return 0;
+	if(!c||(i<0)||(i>8))
+		return -1;
+	else
+		return (*c = ( *c & ~cbit(i)) | ((*c & cbit(i)) ? 0 : cbit(i)));
 }
 
 int rngflip(rng_ind* rng, int i)
 {
-	return 0;
+	if(rng&&(i<256))
+	{
+		return charflip(rng->member + i/8, i%8);
+	}
+	else return -1;
+}
+
+int rngbitcnt(rng_ind* rng)
+{
+	int i, cnt;
+	
+	if(!rng)
+		return -1;
+	
+	for(i=0,cnt=0;i<32;i++)
+		cnt += (rng->member[i] ? cbitcnt(rng->member[i]) : 0);
+	
+	return cnt;
 }
 
 char* rngstr(rng_ind* rng)
 {
+	if(!rng)
+		return NULL;
+	
+
 	return NULL;
 }
 
