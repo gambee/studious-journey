@@ -13,6 +13,12 @@
 
 typedef struct {char member[32];} rng_ind;
 
+typedef struct
+{
+	char lwrbnd;
+	char uprbnd;
+}cinterval;
+
 int atob(char);
 int tob(int*, void*, int);
 int cbit(int);
@@ -34,10 +40,7 @@ int cbit(int i)
 	if((i>=0)&&(i<8))
 		return (1<<i);
 	else
-	{
-		printf("cbit_err");
 		return -1;
-	}
 }
 
 int tob(int* dest, void* data, int size)

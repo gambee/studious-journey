@@ -6,31 +6,10 @@
 	
 int main(int argc, char **argv)
 {
-	char *cur,str[257], input[201];
-	int i;
-	rng_ind rng;
-
-
-	while(1)
-	{
-		memset(input,0,257);
-		rnginit(&rng);
-		printf("enter an input curing:\n\t");
-		scanf("%s", input);
-
-		for(cur=input;*cur;cur++)
-			rngset(&rng,*cur);
-		
-		i = rngstr(str, &rng, 257);
-
-		if(i>0)
-			printf("%s\n", str);
-		else
-		{
-			printf("\n");
-			break;
-		}
-	}
+	cinterval test[10];
+	char* lwr = (char*) test;
+	char* upper = (char*) &test[8];
+	printf("expect 16: %d\n", (int) (upper - lwr));
 
 	return 0;
 }
