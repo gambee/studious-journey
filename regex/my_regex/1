@@ -1,0 +1,62 @@
+test.c: In function ‘main’:
+test.c:9:2: error: unknown type name ‘rnd_ind’; did you mean ‘rng_ind’?
+  rnd_ind rng;
+  ^~~~~~~
+  rng_ind
+test.c:11:10: warning: passing argument 1 of ‘rnginit’ from incompatible pointer type [-Wincompatible-pointer-types]
+  rnginit(&rng);
+          ^
+In file included from test.c:2:0:
+range.h:436:6: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ void rnginit(rng_ind* rng){memset(rng->member,0,32);}
+      ^~~~~~~
+test.c:14:10: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+   rngset(&rng,i);
+          ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:17:10: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+   rngset(&rng,i);
+          ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:20:10: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+   rngset(&rng,i);
+          ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:22:9: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+  rngset(&rng,'\n');
+         ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:23:9: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+  rngset(&rng,'\n');
+         ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:24:9: warning: passing argument 1 of ‘rngset’ from incompatible pointer type [-Wincompatible-pointer-types]
+  rngset(&rng, ' ');
+         ^
+In file included from test.c:2:0:
+range.h:445:5: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ int rngset(rng_ind* rng, int i)
+     ^~~~~~
+test.c:27:20: warning: passing argument 1 of ‘rnggetfstr’ from incompatible pointer type [-Wincompatible-pointer-types]
+  dest = rnggetfstr(&rng);
+                    ^
+In file included from test.c:2:0:
+range.h:237:7: note: expected ‘rng_ind * {aka struct <anonymous> *}’ but argument is of type ‘int *’
+ char* rnggetfstr(rng_ind* rngi)
+       ^~~~~~~~~~
+make: *** [Makefile:2: test] Error 1

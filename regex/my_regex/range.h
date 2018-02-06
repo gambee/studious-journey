@@ -10,11 +10,8 @@
 #	include <ctype.h>
 #	include <stdlib.h>
 #	include <stdio.h>
-#	include "char_stack.h"
-
-#define BAD_TYPE -1
-#define CTL_TYPE 1
-#define NUM_TYPE 2
+#	define BUF_DEBUG
+#	include "buffer.h"
 
 typedef struct {char member[32];} rng_ind;
 
@@ -31,11 +28,6 @@ typedef struct
 }crng;
 
 
-int spclstrcpy(char**, char*, int);
-int spclstrlen(char*);
-int catspclchar(char*, char, int);
-int chartype(char);
-char ctlletter(char);
 int showbits(char);
 int tob(int*, void*, int);
 int cbit(int);
@@ -51,346 +43,112 @@ int rngbit(rng_ind*, int);
 int rngset(rng_ind*, int);
 int rngflip(rng_ind*, int);
 int rngstr(char*,rng_ind*,int);
-char* rnggetfstr(rng_ind*);
 void rngprintbits(rng_ind*);
+int bufputch(struct BUF_buffer*, int);
+char* rngexpr(rng_ind*);
 
-void crnginit(crng*);
-int isincrng(crng*, char);
-int crngpopul(crng*,rng_ind*);
-
-int spclstrcpy(char** dest, char* src, int max)
+int bufputch(struct BUF_buffer *buf, int c)
 {
-	int len, i;
-	char *cur;
-
-	if(!src || !dest)
+	char fmt[100];
+	if(!buf)
 		return -1;
-	
-	len = spclstrlen(src);
 
-	if(!*dest)
-	{
-		if(max)
-			return -2;
-		else if(!(*dest = (char*) malloc(len + 1)))
-			return -4;
-	}
-	else
-	{
-		if(!max)
-			return -2;
-		else if(len + 1 > max)
-			return -3;
-	}
-
-	for(cur=src, i=0; *cur; ++cur)
-	{
-		if(chartype(*cur))
-			i += catspclchar(*dest, *cur, 7);
-		else *dest[i++] = *cur;
-	}
-
-	(*dest)[i] = 0;
-
-	return i;
-}
-	
-
-int spclstrlen(char* str)
-{
-	int len;
-	char *cur;
-	if(!str)
-		return -1;
-	len = 0;
-	cur = str;
-
-	while(*cur)
-	{
-		switch(chartype(*cur))
-		{
-			case 0:
-				++len;
-			case CTL_TYPE:
-			case BAD_TYPE:
-				len +=2;
-				break;
-			case NUM_TYPE:
-				if(*cur<10)
-					len +=3;
-				else if(*cur<100)
-					len +=4;
-				else len +=5;
-				break;
-		}
-		++cur;
-	}
-
-	return len;
-}
-
-
-int catspclchar(char* dest, char c, int max)
-{
-	char spcl[7];
-	int type = chartype(c);
-
-	if(!dest || !c)
-		return 0;
-	
-	if(type == BAD_TYPE)
-		strcpy(spcl, "\E");
-	else if(type == CTL_TYPE)
-		sprintf(spcl, "\\%c", ctlletter(c));
-/*	{
-		spcl[0] = '\';
-		spcl[1] = ctlletter(c);
-		spcl[2] = 0;
-	}*/
-	else //type == NUM_TYPE
-		sprintf(spcl, "<%u>", c);
-	
-	type = strlen(spcl);
-
-	if(type <= max)
-	{
-		strcat(dest, spcl);
-		return type;
-	}
-	else return -type;
-}
-
-
-int chartype(char c)
-{
-	if(!c || c =='\b')
-		return BAD_TYPE;
-	else if(iscntrl(c)||(c == ' ')||(c == '-')||(c == '<')||(c == '{'))
-		return CTL_TYPE;
-	else if(isgraph(c))
-		return 0;
-	else return NUM_TYPE;
-}
-
-char ctlletter(char c)
-{
 	switch(c)
 	{
 		case '\n':
-			return 'n';
+			BUF_puts(buf, "\\n");
+			return 0;
 		case '\t':
-			return 't';
-		case '\v':
-			return 'v';
+			BUF_puts(buf, "\\t");
+			return 0;
 		case '\f':
-			return 'f';
+			BUF_puts(buf, "\\f");
+			return 0;
+		case '\v':
+			BUF_puts(buf, "\\v");
+			return 0;
 		case '\r':
-			return 'r';
+			BUF_puts(buf, "\\r");
+			return 0;
 		case ' ':
-			return 's';
+			BUF_puts(buf, "\\s");
+			return 0;
+		case '\\':
+			BUF_puts(buf, "\\\\");
+			return 0;
 		case '-':
-			return '-';
-		case '{':
-			return '{';
+			BUF_puts(buf, "\\-");
+			return 0;
 		case '<':
-			return '<';
-		default:
-			return 'E';
+			BUF_puts(buf, "\\<");
+			return 0;
+		case '{':
+			BUF_puts(buf, "\\{");
+			return 0;
+		case ']':
+			BUF_puts(buf, "\\]");
+			return 0;
 	}
-}
 
-void crnginit(crng* to_init)
-{
-	if(to_init)
+	if(isgraph(c))
+		BUF_putc(buf, c);
+	else
 	{
-		to_init->intervals = NULL;
-		to_init->isopnts = NULL;
+		sprintf(fmt, "<%u>", c);
+		BUF_puts(buf, fmt);
 	}
-}
 
-int isincrng(crng* range, char c)
-{
-	cinterval* intval;
-	char* isopnt;
-
-	if(!range)
-		return 0;
-	
-	intval = range->intervals;
-	isopnt = range->isopnts;
-
-	if(isopnt)
-		while(*isopnt)
-			if(*isopnt == c)
-				return 1;
-			else ++isopnt;
-		
-	if(intval)
-		while(intval->lwrbnd != 0)
-			if(intval->uprbnd < c)
-				intval++;
-			else return (intval->lwrbnd > c) ? 0 : 1;
-	
 	return 0;
 }
-			
-char* rnggetfstr(rng_ind* rngi)
+
+char* rngexpr(rng_ind* rng)
 {
-	char* ret;
-	int len, i;
-	crng range;
+	struct BUF_buffer buffer;
+	int i, flag, blen;
+	char *ret, *cur;
 
-	cinterval* curival;
-	char* curisop;
+	if(!rng)
+		return NULL;
 
-	crnginit(&range);
-	crngpopul(&range, rngi);
+	BUF_init(&buffer);
 
-	if(range.intervals)
-		for(len = 0; range.intervals[len].lwrbnd; ++len);
-	len += range.intervals ? spclstrlen((char*)range.intervals) : 0;
-	len += range.isopnts ? spclstrlen(range.isopnts) : 0;
-	++len;
+	BUF_putc(&buffer, '[');
 
-	if((ret = (char*) malloc(len)))
+	for(i=1,flag=0;i<256;i++)
 	{
-		i = 0;
-		curisop = range.isopnts;
-		curival = range.intervals;
-		if(curisop && curival)
+		if(flag)
 		{
-			while(*curisop && curival->lwrbnd)
+			if(!rngbit(rng,i))
 			{
-				if(*curisop < curival->lwrbnd)
-				{
-					if(chartype(*curisop))
-						i += catspclchar(ret, *curisop, 7);
-					else ret[i++] = *(curisop++);
-				}
-				else
-				{
-					if(chartype(curival->lwrbnd))
-						i += catspclchar(ret, curival->lwrbnd, 7);
-					else ret[i++] = curival->lwrbnd;
-					ret[i++] = '-';
-					if(chartype(curival->uprbnd))
-						i += catspclchar(ret, curival->uprbnd, 7);
-					else ret[i++] = curival->uprbnd;
-					++curival;
-				}
+				bufputch(&buffer, i-1);
+				flag = 0;
 			}
 		}
-		if(curisop)
+		else
 		{
-			while(*curisop)
+			if(rngbit(rng,i))
 			{
-				if(chartype(*curisop))
-					i += catspclchar(ret, *curisop, 7);
-				else ret[i++] = *(curisop++);
-			}
-		}
-		if(curival)
-		{
-			while(curival->lwrbnd)
-			{
-				if(chartype(curival->lwrbnd))
-					i += catspclchar(ret, curival->lwrbnd, 7);
-				else ret[i++] = curival->lwrbnd;
-				ret[i++] = '-';
-				if(chartype(curival->uprbnd))
-					i += catspclchar(ret, curival->uprbnd, 7);
-				else ret[i++] = curival->uprbnd;
-				++curival;
+				bufputch(&buffer, i);
+				if(rngbit(rng,i+1))
+				{
+					BUF_putc(&buffer, '-');
+					flag = 1;
+				}
 			}
 		}
 	}
+	BUF_putc(&buffer, ']');
 
-	if(range.intervals)
-		free(range.intervals);
-	if(range.isopnts)
-		free(range.isopnts);
+	
+	blen = BUF_line_len(&buffer);
+	blen = (blen < 0) ? -blen : blen; 
+	ret = (char*) malloc(blen+1);
+
+	if(ret)
+		for(cur = ret; *cur = BUF_getc(&buffer); ++cur);
+	else while(BUF_getc(&buffer));
 
 	return ret;
-}
-
-int crngpopul(crng* range, rng_ind* rngi)
-{
-	int ivals, isops, i,flag;
-
-/*
-	int pntrsz = sizeof(char*);
-	int ivalsz = sizeof(cinterval);
-	*/
-
-	char* curpnt;
-	cinterval* curival;
-
-	if(!range || !rngi)
-		return -1;
-
-	for(ivals=0, isops=0, i=1,flag=0;i<256;i++)
-	{
-		if(flag)
-		{
-			if(!rngbit(rngi,i))
-				flag = 0;
-		}
-		else
-		{
-			if(rngbit(rngi,i))
-			{
-				if(rngbit(rngi,++i))
-				{
-					flag = 1;
-					++ivals;
-				}
-				else ++isops;
-			}
-		}
-	}
-	/*
-	printf("ivals: %d\t isops: %d\n", ivals, isops);
-	printf("2*%d + (%d+1)*%d + (%d+1) = %d\n"
-		,pntrsz
-		,ivals
-		,ivalsz
-		,isops
-		, (2*pntrsz + (ivals+1)*ivalsz + (isops+1))); 
-	*/
-
-	range->intervals = (cinterval*) malloc(sizeof(cinterval)*(ivals+1));
-	range->isopnts = (char*) malloc(isops+1);
-
-	for(curival=range->intervals, curpnt=range->isopnts,i=1,flag=0;i<256;i++)
-	{
-		if(flag)
-		{
-			if(!rngbit(rngi,i))
-			{
-				curival->uprbnd = i - 1;
-				flag = 0;
-				curival++;
-			}
-		}
-		else
-		{
-			if(rngbit(rngi,i))
-			{
-				++i;
-				if(rngbit(rngi,i))
-				{
-					curival->lwrbnd = i - 1;
-					flag = 1;
-				}
-				else *(curpnt++) = i - 1;
-					
-			}
-		}
-	}
-	curival->lwrbnd = 0;
-	*curpnt = 0;
-		
-	return 0;
 }
 
 int cbit(int i)
