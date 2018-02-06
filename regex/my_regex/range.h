@@ -10,26 +10,11 @@
 #	include <ctype.h>
 #	include <stdlib.h>
 #	include <stdio.h>
-#	define BUF_DEBUG
 #	include "buffer.h"
 
 typedef struct {char member[32];} rng_ind;
 
-typedef struct
-{
-	char lwrbnd;
-	char uprbnd;
-}cinterval;
-
-typedef struct
-{
-	cinterval* intervals;
-	char* isopnts;
-}crng;
-
-
 int showbits(char);
-int tob(int*, void*, int);
 int cbit(int);
 int cbitcnt(unsigned char);
 
@@ -42,10 +27,128 @@ int rngbitcnt(rng_ind*);
 int rngbit(rng_ind*, int);
 int rngset(rng_ind*, int);
 int rngflip(rng_ind*, int);
+
 int rngstr(char*,rng_ind*,int);
 void rngprintbits(rng_ind*);
 int bufputch(struct BUF_buffer*, int);
+
 char* rngexpr(rng_ind*);
+int compexpr(rng_ind*, char*);
+
+
+int compexpr(rng_ind* rng, char* expr)
+{
+	char tmp[100];
+	char last = 0;
+	char *cur;
+	int i;
+	int compliment = 0;
+	if(!rng || !expr)
+		return -1;
+
+	rnginit(rng);
+	cur = expr;
+
+	if(*(cur++) == '[')
+	{
+		if(*cur == '-')
+			fprintf(stderr, "ERROR: \'-\' has no lower bound\n");
+		if(*cur && *cur == '^')
+		{
+			++cur;
+			compliment = 1;
+		}
+		while(*cur)
+		{
+			switch(*(cur))
+			{
+				case '\\':
+					switch(*(++cur))
+					{
+						case 'n':
+							rngset(rng, '\n');
+							last = '\n';
+							break;
+						case 'r':
+							rngset(rng, '\r');
+							last = '\r';
+							break;
+						case 't':
+							rngset(rng, '\t');
+							last = '\t';
+							break;
+						case 'f':
+							rngset(rng, '\f');
+							last = '\f';
+							break;
+						case 'v':
+							rngset(rng, '\v');
+							last = '\v';
+							break;
+						case '-':
+						case '{':
+						case '<':
+						case '\\':
+						case '[':
+							rngset(rng, *cur);
+							last = *cur;
+							break;
+						case 's':
+							rngset(rng, ' ');
+							last = ' ';
+							break;
+						default:
+							fprintf(stderr, "ERROR: Unrecognized control character: \\%c\n", *cur);
+							return -2;
+					}
+					break;
+				case '<':
+					++cur;
+					for(i=0; isdigit(*cur); ++i, ++cur)
+						tmp[i] = *cur;
+					tmp[i] = 0;
+					if(!*tmp)
+					{
+						fprintf(stderr, "ERROR: No digits found in ASCII Integer\n");
+						return -2;
+					}
+					i = atoi(tmp);
+					if((i < 256)&&(i >= 0))
+						rngset(rng, i);
+					else
+					{
+						fprintf(stderr, "ERROR: ASCII Integer out of range: %u\n", i);
+						return -2;
+					}
+					if(*cur == '>')
+						last = '>';
+					else
+					{
+						fprintf(stderr, "ERROR: Expected \'>\'\n");
+						return -2;
+					}
+					break;
+				case ']':
+					last = ']';
+					break;
+				default:
+					rngset(rng, *cur);
+					break;
+				}
+				++cur;
+		}
+
+		if(compliment)
+			for(i=0;i<32;i++)
+				rng->member[i] = ~(rng->member[i]);
+		
+
+		
+		return 0;
+	}
+	else return -2;
+}
+
 
 int bufputch(struct BUF_buffer *buf, int c)
 {
@@ -157,20 +260,6 @@ int cbit(int i)
 		return (1<<i);
 	else
 		return -1;
-}
-
-int tob(int* dest, void* data, int size)
-{
-	int i;
-	char* tmp;
-
-	if(!dest || !data || size<=0)
-		return -1;
-	
-	for(tmp = (char*) data, i=1; i<=size; i++)
-		dest[size-i] = showbits(tmp[i-1]);
-
-	return 0;
 }
 
 int showbits(char c)

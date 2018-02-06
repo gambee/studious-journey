@@ -16,6 +16,9 @@
  * ===================================== */
 
 #include <stdlib.h>			//needed for memory management 
+#include <ctype.h>
+#include <stdio.h>
+
 
 /* ===================================== *
  * Section: Defines 					 *
@@ -188,11 +191,6 @@ int BUF_puts(struct BUF_buffer *buf, char *str)
 	return i;
 }
 
-#ifdef BUF_DEBUG //then provide these functions:
-
-//debug includes:
-#include <ctype.h>
-#include <stdio.h>
 
 /* ------------------------------------- * 
  * Function: BUF_print_all
@@ -275,7 +273,5 @@ int BUF_print_all(struct BUF_buffer *buf)
 
 	return 0;
 }
-
-#endif //ifdef BUF_DEBUG
 
 #endif //ifndef BUFFER_H
